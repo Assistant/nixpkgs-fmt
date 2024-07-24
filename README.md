@@ -2,9 +2,9 @@
 
 [![CI](https://github.com/nix-community/nixpkgs-fmt/actions/workflows/push.yml/badge.svg?branch=master)](https://github.com/nix-community/nixpkgs-fmt/actions/workflows/push.yml) [![built with nix](https://builtwithnix.org/badge.svg)](https://builtwithnix.org)
 
-**STATUS: beta**
+**STATUS: archived. Replaced by [nixfmt](https://github.com/NixOS/nixfmt).**
 
-This project's goal is to format the nix code in nixpkgs to increase the
+This project's goal was to format the nix code in nixpkgs to increase the
 consistency of the code found there. Ideally automatically with pre-commit
 hooks and later ofborg enforcing the format.
 
