@@ -76,7 +76,7 @@ impl FmtDiff {
     /// Apply the formatting suggestions and return the new node
     pub(crate) fn to_node(&self) -> SyntaxNode {
         if self.has_changes() {
-            rnix::parse(&self.to_string()).node()
+            rnix::Root::parse(&self.to_string()).syntax()
         } else {
             self.original_node.clone()
         }
@@ -92,8 +92,8 @@ pub fn reformat_node(node: &SyntaxNode) -> SyntaxNode {
 pub fn reformat_string(text: &str) -> String {
     let (text, line_endings) = convert_to_unix_line_endings(text);
 
-    let ast = rnix::parse(&*text);
-    let root_node = ast.node();
+    let ast = rnix::Root::parse(&*text);
+    let root_node = ast.syntax();
     let res = reformat_node(&root_node).to_string();
     match line_endings {
         LineEndings::Unix => res,
@@ -127,11 +127,16 @@ pub fn reformat_edits(node: &SyntaxNode) -> (Vec<AtomEdit>, Vec<AtomEdit>) {
 
 pub fn explain(text: &str) -> String {
     let (text, _line_endings) = convert_to_unix_line_endings(text);
-    let ast = rnix::parse(&*text);
+    let ast = rnix::Root::parse(&*text);
     let spacing = rules::spacing();
     let indentation = rules::indentation();
     let mut explanation = Vec::new();
-    engine::reformat(&spacing, &indentation, &ast.node(), ExtraInfo::Explanation(&mut explanation));
+    engine::reformat(
+        &spacing,
+        &indentation,
+        &ast.syntax(),
+        ExtraInfo::Explanation(&mut explanation),
+    );
 
     let mut buf = String::new();
     let mut line_start: TextSize = 0.into();
@@ -215,7 +220,7 @@ foo =1;  # [7; 7): Space after =
     fn edits() {
         let input = include_str!("../test_data/indent_tabs-2.bad.nix");
         let expected = include_str!("../test_data/indent_tabs-2.good.nix");
-        let (spacing_edits, indent_edits) = reformat_edits(&rnix::parse(input).node());
+        let (spacing_edits, indent_edits) = reformat_edits(&rnix::Root::parse(input).syntax());
         dbg!(&spacing_edits, &indent_edits);
 
         let mut intermediate_len = input.len() as isize;

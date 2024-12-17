@@ -1,6 +1,6 @@
 //! This module contains specific `super::dsl` rules for formatting nix language.
 use rnix::{
-    types::{Lambda, LetIn, TypedNode, With},
+    ast::{Lambda, LetIn, With},
     NodeOrToken, SyntaxElement, SyntaxKind,
     SyntaxKind::*,
     T,
@@ -14,6 +14,7 @@ use crate::{
         prev_non_whitespace_sibling, prev_sibling, prev_token_sibling,
     },
 };
+use rowan::ast::AstNode;
 
 #[rustfmt::skip]
 pub(crate) fn spacing() -> SpacingDsl {
@@ -22,16 +23,16 @@ pub(crate) fn spacing() -> SpacingDsl {
     dsl
         .test("{ a=92; }", "{ a = 92; }")
         .rule("Space before =")
-        .inside(NODE_KEY_VALUE).before(T![=]).single_space()
+        .inside(NODE_ATTRPATH_VALUE).before(T![=]).single_space()
 
         .rule("Space after =")
-        .inside(NODE_KEY_VALUE).after(T![=]).single_space_or_optional_newline()
+        .inside(NODE_ATTRPATH_VALUE).after(T![=]).single_space_or_optional_newline()
 
         .test("{ a = 92 ; }", "{ a = 92; }")
-        .inside(NODE_KEY_VALUE).before(T![;]).no_space_or_optional_newline()
-        .inside(NODE_KEY_VALUE).before(T![;]).when(after_literal).no_space()
-        .inside(NODE_KEY_VALUE).before(NODE_IF_ELSE).when(not_inline_if).single_space_or_newline()
-        .inside(NODE_KEY_VALUE).before(NODE_LET_IN).when(inline_let_in).single_space_or_newline()
+        .inside(NODE_ATTRPATH_VALUE).before(T![;]).no_space_or_optional_newline()
+        .inside(NODE_ATTRPATH_VALUE).before(T![;]).when(after_literal).no_space()
+        .inside(NODE_ATTRPATH_VALUE).before(NODE_IF_ELSE).when(not_inline_if).single_space_or_newline()
+        .inside(NODE_ATTRPATH_VALUE).before(NODE_LET_IN).when(inline_let_in).single_space_or_newline()
 
         .test("a++\nb", "a ++\nb")
         .test("a==  b", "a == b")
@@ -52,39 +53,39 @@ pub(crate) fn spacing() -> SpacingDsl {
         .inside(NODE_LAMBDA).before(NODE_LET_IN).single_space_or_newline()
 
         .test("[1 2 3]", "[ 1 2 3 ]")
-        .inside(NODE_LIST).after(T!["["]).single_space_or_newline()
-        .inside(NODE_LIST).before(T!["]"]).single_space_or_newline()
-        .inside(NODE_LIST).after(T!["["]).when(inline_with_attr_set).no_space()
-        .inside(NODE_LIST).before(T!["]"]).when(inline_with_attr_set).no_space()
+        .inside(NODE_LIST).after(T!['[']).single_space_or_newline()
+        .inside(NODE_LIST).before(T![']']).single_space_or_newline()
+        .inside(NODE_LIST).after(T!['[']).when(inline_with_attr_set).no_space()
+        .inside(NODE_LIST).before(T![']']).when(inline_with_attr_set).no_space()
         .test("[]", "[ ]")
-        .inside(NODE_LIST).between(T!["["], T!["]"]).single_space_or_optional_newline()
+        .inside(NODE_LIST).between(T!['['], T![']']).single_space_or_optional_newline()
         .inside(NODE_LIST).between(VALUES, VALUES).single_space_or_newline()
         .inside(NODE_LIST).between(VALUES, TOKEN_COMMENT).single_space_or_optional_newline()
         .inside(NODE_LIST).between(TOKEN_COMMENT, VALUES).single_space_or_newline()
 
         .test("( 92 )", "(92)")
 
-        .inside(NODE_PAREN).after(T!["("]).no_space_or_optional_newline()
-        .inside(NODE_PAREN).before(T![")"]).no_space_or_optional_newline()
-        .inside(NODE_PAREN).after(T!["("]).when(has_no_brackets).no_space_or_newline()
-        .inside(NODE_PAREN).before(T![")"]).when(has_no_brackets).no_space_or_newline()
+        .inside(NODE_PAREN).after(T!['(']).no_space_or_optional_newline()
+        .inside(NODE_PAREN).before(T![')']).no_space_or_optional_newline()
+        .inside(NODE_PAREN).after(T!['(']).when(has_no_brackets).no_space_or_newline()
+        .inside(NODE_PAREN).before(T![')']).when(has_no_brackets).no_space_or_newline()
 
         .test("{foo = 92;}", "{ foo = 92; }")
-        .inside(NODE_ATTR_SET).after(T!["{"]).single_space_or_newline()
-        .inside(NODE_ATTR_SET).before(T!["}"]).single_space_or_newline()
+        .inside(NODE_ATTR_SET).after(T!['{']).single_space_or_newline()
+        .inside(NODE_ATTR_SET).before(T!['}']).single_space_or_newline()
         .test("{}", "{ }")
-        .inside(NODE_ATTR_SET).between(T!["{"], T!["}"]).single_space()
-        .inside(NODE_ATTR_SET).before(NODE_KEY_VALUE).single_space_or_optional_newline()
-        .inside(NODE_ATTR_SET).between(NODE_KEY_VALUE, NODE_KEY_VALUE).single_space_or_newline()
+        .inside(NODE_ATTR_SET).between(T!['{'], T!['}']).single_space()
+        .inside(NODE_ATTR_SET).before(NODE_ATTRPATH_VALUE).single_space_or_optional_newline()
+        .inside(NODE_ATTR_SET).between(NODE_ATTRPATH_VALUE, NODE_ATTRPATH_VALUE).single_space_or_newline()
         .inside(NODE_ATTR_SET).between(NODE_INHERIT, [NODE_INHERIT, TOKEN_COMMENT]).single_space_or_optional_newline()
-        .inside(NODE_ATTR_SET).between(NODE_KEY_VALUE, TOKEN_COMMENT).single_space_or_optional_newline()
+        .inside(NODE_ATTR_SET).between(NODE_ATTRPATH_VALUE, TOKEN_COMMENT).single_space_or_optional_newline()
 
         .test("{arg}: 92", "{ arg }: 92")
-        .inside(NODE_PATTERN).after(T!["{"]).single_space()
-        .inside(NODE_PATTERN).between(T!["{"], TOKEN_COMMENT).single_space_or_newline()
-        .inside(NODE_PATTERN).before(T!["}"]).single_space_or_newline()
+        .inside(NODE_PATTERN).after(T!['{']).single_space()
+        .inside(NODE_PATTERN).between(T!['{'], TOKEN_COMMENT).single_space_or_newline()
+        .inside(NODE_PATTERN).before(T!['}']).single_space_or_newline()
         .test("{ }: 92", "{}: 92")
-        .inside(NODE_PATTERN).between(T!["{"], T!["}"]).no_space()
+        .inside(NODE_PATTERN).between(T!['{'], T!['}']).no_space()
 
         .test("{ foo,bar }: 92", "{ foo, bar }: 92")
         .inside(NODE_PATTERN).after(T![,]).single_space()
@@ -94,18 +95,18 @@ pub(crate) fn spacing() -> SpacingDsl {
         .inside(NODE_INHERIT).around(NODE_INHERIT_FROM).single_space_or_optional_newline()
         .inside(NODE_INHERIT).around(T![;]).no_space_or_optional_newline()
         .inside(NODE_INHERIT).before(NODE_IDENT).single_space_or_optional_newline()
-        .inside(NODE_INHERIT).before(NODE_OR_DEFAULT).single_space_or_optional_newline()
+        // .inside(NODE_INHERIT).before(NODE_OR_DEFAULT).single_space_or_optional_newline()
         .inside(NODE_INHERIT).after(NODE_IDENT).no_space_or_optional_newline()
-        .inside(NODE_INHERIT_FROM).after(T!["("]).no_space()
-        .inside(NODE_INHERIT_FROM).before(T![")"]).no_space()
+        .inside(NODE_INHERIT_FROM).after(T!['(']).no_space()
+        .inside(NODE_INHERIT_FROM).before(T![')']).no_space()
 
         .inside(NODE_WITH).before(NODE_LET_IN).single_space_or_optional_newline()
 
         .test("let   foo = bar;in  92", "let foo = bar; in 92")
         .inside(NODE_LET_IN).after(T![let]).single_space_or_optional_newline()
         .inside(NODE_LET_IN).around(T![in]).single_space_or_optional_newline()
-        .inside(NODE_LET_IN).after(NODE_KEY_VALUE).single_space_or_optional_newline()
-        .inside(NODE_LET_IN).before(NODE_KEY_VALUE).when(let_header_has_newline).newline()
+        .inside(NODE_LET_IN).after(NODE_ATTRPATH_VALUE).single_space_or_optional_newline()
+        .inside(NODE_LET_IN).before(NODE_ATTRPATH_VALUE).when(let_header_has_newline).newline()
         .inside(NODE_LET_IN).around(T![in]).when(let_header_has_newline).newline()
 
         .test("{a?3}: a", "{ a ? 3 }: a")
@@ -162,7 +163,7 @@ fn after_literal(element: &SyntaxElement) -> bool {
 
     let prev = prev_sibling(element);
     return if let Some(body) = prev.clone().and_then(With::cast).and_then(|w| w.body()) {
-        is_literal(body.kind())
+        is_literal(body.syntax().kind())
     } else {
         prev.map(|it| is_literal(it.kind())) == Some(true)
     };
@@ -179,12 +180,12 @@ fn has_no_brackets(element: &SyntaxElement) -> bool {
             before_token_has_newline(&it.into())
         }
         NODE_APPLY => {
-            if let Some(value) =
-                it.first_child().and_then(rnix::types::Apply::cast).and_then(|e| e.value())
-            {
-                match value.kind() {
-                    NODE_ATTR_SET | NODE_PAREN => return false,
-                    _ => return true && before_token_has_newline(&it.into()),
+            if let Some(value) = it.first_child().and_then(rnix::ast::Apply::cast) {
+                if let Some(arg) = value.argument() {
+                    match arg.syntax().kind() {
+                        NODE_ATTR_SET | NODE_PAREN => return false,
+                        _ => return true && before_token_has_newline(&it.into()),
+                    }
                 }
             }
             return false;
@@ -215,7 +216,7 @@ fn should_be_newline(element: &SyntaxElement) -> bool {
 
     let apply = match element.parent() {
         None => return false,
-        Some(it) => rnix::types::Apply::cast(it),
+        Some(it) => rnix::ast::Apply::cast(it),
     };
 
     match element.kind() {
@@ -229,7 +230,7 @@ fn should_be_newline(element: &SyntaxElement) -> bool {
         NODE_PAREN | NODE_ATTR_SET => match last_argument_in_function(element) {
             true => {
                 if let Some(fun) = apply.clone().and_then(|e| e.lambda()) {
-                    match fun.kind() {
+                    match fun.syntax().kind() {
                         // node is in multi-argument function
                         NODE_APPLY => {
                             if let Some(node) = prev_non_whitespace_sibling(element) {
@@ -309,8 +310,9 @@ fn before_token_has_newline(element: &SyntaxElement) -> bool {
 fn next_sibling_is_multiline_lambda_pattern(element: &SyntaxElement) -> bool {
     fn find(element: &SyntaxElement) -> Option<bool> {
         let lambda = next_non_whitespace_sibling(element)?.into_node().and_then(Lambda::cast)?;
-        let pattern = lambda.arg().and_then(rnix::types::Pattern::cast)?;
-        Some(has_newline(pattern.node()))
+        let pattern =
+            lambda.param().and_then(|p| rnix::ast::Pattern::cast(p.syntax().to_owned()))?;
+        Some(has_newline(pattern.syntax()))
     }
     find(element) == Some(true)
 }
@@ -319,7 +321,7 @@ fn next_sibling_is_multiline_letin_pattern(element: &SyntaxElement) -> bool {
     fn find(element: &SyntaxElement) -> Option<bool> {
         let letin = next_non_whitespace_sibling(element)?.into_node().and_then(LetIn::cast)?;
         let header = letin
-            .node()
+            .syntax()
             .children_with_tokens()
             .into_iter()
             .take_while(|x| match x {
@@ -348,7 +350,7 @@ fn inline_let_in(element: &SyntaxElement) -> bool {
 
 fn let_header_has_newline(element: &SyntaxElement) -> bool {
     let letin = match element {
-        NodeOrToken::Token(token) => Some(token.parent()),
+        NodeOrToken::Token(token) => token.parent(),
         NodeOrToken::Node(node) => node.parent(),
     };
     // element.as_node().and_then(|x|x.parent());
@@ -410,7 +412,7 @@ pub(crate) fn indentation() -> IndentDsl {
 
         .rule("Indent list content")
             .inside(NODE_LIST)
-            .not_matching([T!["["], T!["]"]])
+            .not_matching([T!['['], T![']']])
             .set(Indent)
             .test(r#"
                 [
@@ -423,7 +425,7 @@ pub(crate) fn indentation() -> IndentDsl {
             "#)
         .rule("Indent parenthesized expressions")
             .inside(NODE_PAREN)
-            .not_matching([T!["("],T![")"]])
+            .not_matching([T!['('],T![')']])
             .set(Indent)
             .test(r#"
                 (
@@ -437,7 +439,7 @@ pub(crate) fn indentation() -> IndentDsl {
         
         .rule("Indent attribute set content")
             .inside(NODE_ATTR_SET)
-            .not_matching([T!["{"], T!["}"]])
+            .not_matching([T!['{'], T!['}']])
             .set(Indent)
             .test(r#"
                 {
@@ -478,7 +480,7 @@ pub(crate) fn indentation() -> IndentDsl {
 
 
         .rule("Indent attribute value")
-            .inside(NODE_KEY_VALUE)
+            .inside(NODE_ATTRPATH_VALUE)
             .not_matching(T![;])
             .set(Indent)
             .test(r#"
@@ -495,7 +497,7 @@ pub(crate) fn indentation() -> IndentDsl {
 
         .rule("Indent lambda parameters")
             .inside(NODE_PATTERN)
-            .not_matching([T!["{"], T!["}"], T![,]])
+            .not_matching([T!['{'], T!['}'], T![,]])
             .set(Indent)
             .test(r#"
                 {
@@ -546,7 +548,7 @@ pub(crate) fn indentation() -> IndentDsl {
 
         .rule("Indent top-level apply arg")
             .inside(p(NODE_APPLY) & p(on_top_level))
-            .not_matching([T!["{"], T!["}"], NODE_ATTR_SET])
+            .not_matching([T!['{'], T!['}'], NODE_ATTR_SET])
             .set(Indent)
             .test(r#"
                 foo
@@ -559,7 +561,7 @@ pub(crate) fn indentation() -> IndentDsl {
 
         .rule("Indent apply arg")
             .inside(p(NODE_APPLY) & p(not_on_top_level) & p(not_inline_apply))
-            .not_matching([T!["{"], T!["}"]])
+            .not_matching([T!['{'], T!['}']])
             .set(Indent)
             .test(r#"
                 foo
@@ -572,12 +574,12 @@ pub(crate) fn indentation() -> IndentDsl {
 
         .rule("Indent apply arg")
             .inside(p(NODE_APPLY) & p(not_on_top_level) & p(inline_apply))
-            .not_matching([T!["{"], T!["}"]])
+            .not_matching([T!['{'], T!['}']])
             .set(Indent)
 
         .rule("Indent with body in attribute")
             .inside([NODE_WITH, NODE_ASSERT])
-            .when_anchor(NODE_KEY_VALUE)
+            .when_anchor(NODE_ATTRPATH_VALUE)
             .set(Indent)
             .test(r#"
                 with foo;
@@ -593,20 +595,20 @@ pub(crate) fn indentation() -> IndentDsl {
                 }
             "#)
 
-        .rule("Indent or default")
-            .inside(NODE_OR_DEFAULT)
-            .set(Indent)
-            .test(r#"
-                {
-                  x = foo or
-                  bar;
-                }
-            "#, r#"
-                {
-                  x = foo or
-                    bar;
-                }
-            "#)
+        // .rule("Indent or default")
+        //     .inside(NODE_OR_DEFAULT)
+        //     .set(Indent)
+        //     .test(r#"
+        //         {
+        //           x = foo or
+        //           bar;
+        //         }
+        //     "#, r#"
+        //         {
+        //           x = foo or
+        //             bar;
+        //         }
+        //     "#)
 
         .rule("Indent if-then-else")
             .inside(p(NODE_IF_ELSE) & p(inline_if_else))
@@ -699,7 +701,7 @@ fn pattern_newline(element: &SyntaxElement) -> bool {
     fn lambda_has_newline(element: &SyntaxElement) -> Option<bool> {
         let first_el = element
             .ancestors()
-            .find(|e| e.kind() == NODE_KEY_VALUE)?
+            .find(|e| e.kind() == NODE_ATTRPATH_VALUE)?
             .children()
             .find(|e| e.kind() == NODE_LAMBDA)?;
 
@@ -742,7 +744,8 @@ fn after_concat_is_newline(element: &SyntaxElement) -> bool {
 
 fn newline_let(element: &SyntaxElement) -> bool {
     let inline_let_in = inline_let_in(element);
-    let inside_key_value = element.parent().map(|e| e.kind() == NODE_KEY_VALUE).unwrap_or(false);
+    let inside_key_value =
+        element.parent().map(|e| e.kind() == NODE_ATTRPATH_VALUE).unwrap_or(false);
 
     !before_token_has_newline(element) && inside_key_value && !inline_let_in
 }
@@ -774,13 +777,15 @@ static BIN_OPS: &[SyntaxKind] = &[
     T![*],
     T![/],
     T![==],
-    T![=>],
+    T![->],
     T![<],
     T![>],
     T![<=],
     T![!=],
     T![||],
     T![&&],
+    T!["|>"],
+    T!["<|"],
 ];
 
 #[cfg(test)]

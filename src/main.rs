@@ -8,7 +8,6 @@ use std::{
 
 use clap::{App, Arg};
 use crossbeam_channel::{unbounded, Receiver, Sender};
-use rnix::types::TypedNode;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
@@ -186,7 +185,7 @@ fn try_main(args: Args) -> Result<()> {
         Operation::Parse { output_format } => {
             reset_sigpipe()?;
             let input = read_single_source(&args.src)?;
-            let ast = rnix::parse(&input);
+            let ast = rnix::Root::parse(&input);
             let mut error_buf = String::new();
             let res = match output_format {
                 OutputFormat::Rnix => {
@@ -194,10 +193,10 @@ fn try_main(args: Args) -> Result<()> {
                     for error in ast.errors() {
                         writeln!(error_buf, "error: {}", error).unwrap();
                     }
-                    writeln!(buf, "{}", ast.root().dump()).unwrap();
+                    writeln!(buf, "{:#?}", ast.tree()).unwrap();
                     buf
                 }
-                OutputFormat::Json => serde_json::to_string_pretty(&ast.node())?,
+                OutputFormat::Json => serde_json::to_string_pretty(&ast.syntax())?,
             };
             match (output_format, error_buf.is_empty()) {
                 (OutputFormat::Rnix, false) => {

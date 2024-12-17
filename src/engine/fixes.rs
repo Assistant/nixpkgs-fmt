@@ -202,8 +202,8 @@ mod tests {
     '';
 }"#;
 
-        let ast = rnix::parse(text);
-        let node = crate::tree_utils::walk(&ast.node())
+        let ast = rnix::Root::parse(text);
+        let node = crate::tree_utils::walk(&ast.syntax())
             .filter_map(|it| it.into_node())
             .find(|node| node.kind() == NODE_STRING)
             .unwrap();
@@ -225,8 +225,8 @@ mod tests {
     '';
 }"#;
 
-        let ast = rnix::parse(text);
-        let node = crate::tree_utils::walk(&ast.node())
+        let ast = rnix::Root::parse(text);
+        let node = crate::tree_utils::walk(&ast.syntax())
             .filter_map(|it| it.into_node())
             .find(|node| node.kind() == NODE_STRING)
             .unwrap();

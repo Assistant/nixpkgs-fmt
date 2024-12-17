@@ -3,8 +3,8 @@ use std::iter::successors;
 use rnix::{
     NodeOrToken, SyntaxElement,
     SyntaxKind::{
-        NODE_APPLY, NODE_ASSERT, NODE_IF_ELSE, NODE_LAMBDA, NODE_LET_IN, NODE_PAREN, NODE_ROOT,
-        NODE_STRING_INTERPOL, NODE_WITH, TOKEN_WHITESPACE,
+        NODE_APPLY, NODE_ASSERT, NODE_IF_ELSE, NODE_INTERPOL, NODE_LAMBDA, NODE_LET_IN, NODE_PAREN,
+        NODE_ROOT, NODE_WITH, TOKEN_WHITESPACE,
     },
     SyntaxNode, SyntaxToken, WalkEvent,
 };
@@ -22,12 +22,8 @@ pub(crate) fn walk_non_whitespace_non_interpol(
     let mut interpool_level = 0;
     node.preorder_with_tokens().filter_map(move |event| {
         match &event {
-            WalkEvent::Enter(element) if element.kind() == NODE_STRING_INTERPOL => {
-                interpool_level += 1
-            }
-            WalkEvent::Leave(element) if element.kind() == NODE_STRING_INTERPOL => {
-                interpool_level -= 1
-            }
+            WalkEvent::Enter(element) if element.kind() == NODE_INTERPOL => interpool_level += 1,
+            WalkEvent::Leave(element) if element.kind() == NODE_INTERPOL => interpool_level -= 1,
             _ => (),
         }
         match event {
