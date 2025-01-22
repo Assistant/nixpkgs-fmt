@@ -313,8 +313,9 @@ checksum = "49b3de9ec5dc0a3417da371aab17d729997c15010e7fd24ff707773a33bddb64"
 
 [[package]]
 name = "rnix"
-version = "0.11.1"
-source = "git+https://github.com/nix-community/rnix-parser.git?rev=9001e02bbd1eed60af26cd9fe36303da25fc9680#9001e02bbd1eed60af26cd9fe36303da25fc9680"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6f15e00b0ab43abd70d50b6f8cd021290028f9b7fdd7cdfa6c35997173bc1ba9"
 dependencies = [
  "rowan",
 ]

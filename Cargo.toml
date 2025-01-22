@@ -14,7 +14,7 @@ repository = "https://github.com/nix-community/nixpkgs-fmt"
 members = [ "./wasm" ]
 
 [dependencies]
-rnix = { git = "https://github.com/nix-community/rnix-parser.git", rev = "9001e02bbd1eed60af26cd9fe36303da25fc9680" }
+rnix = "0.12.0"
 smol_str = "0.1.17"
 
 # Dependencies that are used in the binary only
