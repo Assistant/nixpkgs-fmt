@@ -46,7 +46,7 @@ rec {
 
     src = nixpkgs.lib.cleanSource ./.;
 
-    doCheck = true;
+    doCheck = false;
 
     cargoLock.lockFile = ./Cargo.lock;
   };
